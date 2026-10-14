@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>彰化南區科技藍圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@500;700;900&display=swap">
+<style>
+/* Layout: full-bleed 3D toy diorama; soft paper cards float at the corners like labels on a music box. Single warm look on purpose. */
+:root{
+  color-scheme: light;
+  --bg:#8c827a;
+  --paper:#f7f2e8;
+  --paper-2:#ece4d4;
+  --ink:#3b332d;
+  --muted:#7b6e63;
+  --sage:#5f7d55;
+  --sage-soft:#dfe8d3;
+  --wood:#d39a55;
+  --alert:#d9443a;
+  --alert-soft:#fbe0db;
+  --amber:#c98a22;
+  --amber-soft:#f8ead0;
+  --ok:#4a8f55;
+  --ok-soft:#dcefdc;
+  --display:"Huninn","Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;
+  --body:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden}
+#app{position:fixed;inset:0}
+#world{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#world:active{cursor:grabbing}
+.hud{position:absolute;inset:0;pointer-events:none;display:grid;gap:12px;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+  grid-template-columns:minmax(250px,310px) 1fr minmax(230px,280px);
+  grid-template-rows:auto 1fr auto;
+  grid-template-areas:"title . status" ". . status" "picker caption status"}
+.hud>*{pointer-events:auto}
+.card{background:color-mix(in srgb,var(--paper) 94%,transparent);border-radius:20px;padding:14px 16px;box-shadow:0 6px 22px rgba(40,30,20,.18)}
+.title{grid-area:title;align-self:start}
+.eyebrow{margin:0;font-size:12px;letter-spacing:.08em;color:var(--sage);font-weight:700}
+.cand{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.12em;color:var(--ink);margin-left:4px}
+h1{margin:2px 0 4px;font-family:var(--display);font-weight:400;font-size:30px;line-height:1.15;text-wrap:balance}
+.sub{margin:0;font-size:13px;line-height:1.6;color:var(--muted)}
+.status{grid-area:status;align-self:start;display:flex;flex-direction:column;gap:10px;min-width:0}
+.st{background:color-mix(in srgb,var(--paper) 94%,transparent);border-radius:18px;padding:12px 14px;box-shadow:0 6px 22px rgba(40,30,20,.16);min-width:0}
+.st-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.st-name{font-family:var(--display);font-size:16px}
+.pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;background:var(--paper-2);color:var(--muted)}
+.pill.alert{background:var(--alert);color:#fff}
+.pill.warn{background:var(--amber-soft);color:var(--amber)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.st-d{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--muted)}
+.st-d b{color:var(--ink);font-variant-numeric:tabular-nums}
+.stalls{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin-top:8px}
+.stalls span{height:14px;border-radius:4px;background:var(--ok-soft);border:1.5px solid var(--ok)}
+.stalls span.on{background:var(--alert);border-color:var(--alert)}
+.stall-lg{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px}
+.linkbtn{margin-top:8px;font:inherit;font-size:12px;font-weight:700;color:var(--sage);background:var(--sage-soft);border:0;border-radius:999px;padding:5px 12px;cursor:pointer}
+.picker{grid-area:picker;align-self:end;display:flex;flex-direction:column;gap:8px}
+.picker h2{margin:0;font-family:var(--display);font-weight:400;font-size:16px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.row button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--paper-2);background:var(--paper);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--sage);border-color:var(--sage);color:#fff}
+.row{display:flex;gap:8px;margin-top:2px}
+.row .primary{flex:1;background:var(--wood);border-color:var(--wood);color:#fff;font-family:var(--display);font-weight:400;font-size:16px;padding:8px 14px}
+.row .primary.on{background:var(--ink);border-color:var(--ink)}
+.hint{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.caption{grid-area:caption;align-self:end;justify-self:center;max-width:560px;width:100%;background:var(--ink);color:var(--paper);border-radius:20px;padding:12px 18px;box-shadow:0 8px 26px rgba(30,20,10,.3)}
+.cap-step{font-size:11px;letter-spacing:.1em;color:#e7c48c;font-weight:700}
+.caption strong{display:block;font-family:var(--display);font-weight:400;font-size:19px;margin-top:2px}
+.caption p{margin:4px 0 0;font-size:14px;line-height:1.6;color:#e9e1d3}
+/* phone mock */
+.phone-wrap{position:absolute;inset:0;display:grid;place-items:center;background:rgba(40,32,26,.35);pointer-events:auto;padding:16px}
+.phone{width:min(300px,100%);background:#2b2522;border-radius:36px;padding:12px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.screen{background:var(--paper);border-radius:26px;overflow:hidden}
+.ph-bar{display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:10px 18px 6px;color:var(--ink)}
+.ph-head{background:var(--sage);color:#fff;padding:14px 18px}
+.ph-head small{font-size:12px;opacity:.85}
+.ph-head h3{margin:2px 0 0;font-family:var(--display);font-weight:400;font-size:22px}
+.ph-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
+.ph-body p{margin:0;font-size:13px;line-height:1.65;color:var(--muted)}
+.smoke-btn{width:148px;height:148px;border-radius:50%;border:8px solid var(--alert-soft);background:var(--alert);color:#fff;font-family:var(--display);font-size:21px;line-height:1.3;cursor:pointer;box-shadow:0 8px 0 #a8322a;transition:transform .1s,box-shadow .1s}
+.smoke-btn:active,.smoke-btn.press{transform:translateY(6px);box-shadow:0 2px 0 #a8322a}
+.smoke-btn:disabled{background:#b9ada3;box-shadow:0 8px 0 #8f847b;cursor:default}
+.ph-msg{font-weight:700;color:var(--ink)!important;min-height:1.6em}
+.ph-close{display:block;margin:10px auto 2px;font:inherit;font-weight:700;font-size:14px;color:#efe7dc;background:none;border:0;cursor:pointer;padding:6px 14px}
+@media (max-width:760px){
+  .hud{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto auto;
+    grid-template-areas:"title" "status" "." "caption" "picker";gap:8px}
+  .card{padding:10px 14px}
+  h1{font-size:22px}
+  .sub,.hint{display:none}
+  .status{flex-direction:row;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+  .st{flex:0 0 200px;padding:10px 12px}
+  .caption{padding:10px 14px}
+  .caption strong{font-size:16px}
+  .caption p{font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){.smoke-btn{transition:none}}
+</style>
+
+<div id="app">
+  <canvas id="world" aria-label="延平公園 3D 小世界"></canvas>
+  <div class="hud">
+    <header class="card title">
+      <p class="eyebrow">彰化市民代表・南區候選人 <span class="cand">鄭安棋</span></p>
+      <h1>南區科技藍圖</h1>
+      <p class="sub">以延平公園為示範：斑馬線禮讓警示、禁菸即時廣播、公廁使用看板。拖曳旋轉、滾輪縮放，帶著你的小人偶逛一圈。</p>
+    </header>
+
+    <section class="status" aria-label="即時狀態">
+      <div class="st">
+        <div class="st-h"><span class="st-name">智慧斑馬線</span><span class="pill" id="pill-cross">待命</span></div>
+        <p class="st-d" id="d-cross">路口目前沒有行人</p>
+      </div>
+      <div class="st">
+        <div class="st-h"><span class="st-name">公園禁菸</span><span class="pill" id="pill-smoke">—</span></div>
+        <p class="st-d" id="d-smoke">—</p>
+        <button class="linkbtn" id="scan-btn" type="button">掃描柱上 QR Code</button>
+      </div>
+      <div class="st">
+        <div class="st-h"><span class="st-name">公共廁所</span><span class="pill ok" id="pill-wc">—</span></div>
+        <p class="st-d" id="d-wc">—</p>
+        <div class="stalls" id="stalls"></div>
+        <div class="stall-lg"><span>男 4</span><span>女 5</span><span>親子 1</span></div>
+      </div>
+    </section>
+
+    <div class="caption" id="caption" hidden>
+      <span class="cap-step" id="cap-step"></span>
+      <strong id="cap-title"></strong>
+      <p id="cap-text"></p>
+    </div>
+
+    <section class="card picker" aria-label="角色與導覽">
+      <h2>選擇你的小人偶</h2>
+      <div class="seg" id="pick-kind" role="group" aria-label="角色">
+        <button type="button" id="k-man" data-v="man" aria-pressed="true">男生</button>
+        <button type="button" id="k-woman" data-v="woman" aria-pressed="false">女生</button>
+        <button type="button" id="k-kid" data-v="kid" aria-pressed="false">小朋友</button>
+      </div>
+      <div class="seg" id="pick-extra" role="group" aria-label="同行">
+        <button type="button" id="e-none" data-v="none" aria-pressed="true">獨自</button>
+        <button type="button" id="e-stroller" data-v="stroller" aria-pressed="false">推嬰兒車</button>
+        <button type="button" id="e-dog" data-v="dog" aria-pressed="false">帶寵物</button>
+      </div>
+      <div class="row">
+        <button type="button" class="primary" id="tour-btn">自動導覽</button>
+        <button type="button" id="sound-btn" aria-pressed="true">聲音 開</button>
+      </div>
+      <p class="hint">點地面走過去・WASD／方向鍵移動・點公園柱子上的 QR Code</p>
+    </section>
+  </div>
+
+  <div class="phone-wrap" id="phone" hidden>
+    <div class="phone" role="dialog" aria-label="掃描 QR Code 後的網頁">
+      <div class="screen">
+        <div class="ph-bar"><span>10:24</span><span>延平公園</span></div>
+        <div class="ph-head"><small id="ph-spot">QR 點位 A-02</small><h3>禁菸提醒</h3></div>
+        <div class="ph-body">
+          <p>延平公園為全面禁菸場所。看到有人在園區內吸菸，按下按鈕，園區廣播會播放禁菸提醒。不需登入，不留個資。</p>
+          <button type="button" class="smoke-btn" id="ph-btn">發送<br>禁菸提醒</button>
+          <p class="ph-msg" id="ph-msg">　</p>
+        </div>
+      </div>
+      <button type="button" class="ph-close" id="ph-close">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const rng=seed=>()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+const rand=rng(20261014);
+const mod=(a,n)=>((a%n)+n)%n;
+const FONT='"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif';
+const PARK_Y=0.45, SW_Y=0.3, ROAD_Y=0.06;
+
+/* ---------- renderer / camera ---------- */
+const canvas=$('#world');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x8c827a);
+const camera=new THREE.PerspectiveCamera(34,1,0.5,400);
+const controls=new THREE.OrbitControls(camera,canvas);
+controls.enableDamping=true; controls.maxPolarAngle=1.3; controls.minDistance=8; controls.maxDistance=140;
+const narrow=()=>innerWidth/innerHeight<1;
+const VIEW={overview:[[0,46,56],[0,0,3]],cross:[[13,13,33],[0,0.5,14]],smoke:[[-1,8,15],[-5.4,1.2,3.6]],wc:[[13,8.5,5],[6.3,2.2,-6]]};
+function viewPos(v){const [p,t]=VIEW[v];const T=new THREE.Vector3(...t),P=new THREE.Vector3(...p);if(narrow())P.sub(T).multiplyScalar(1.7).add(T);return [P,T];}
+{const [P,T]=viewPos('overview');camera.position.copy(P);controls.target.copy(T);}
+
+scene.add(new THREE.HemisphereLight(0xfff4e2,0x7d6f62,0.8));
+const sun=new THREE.DirectionalLight(0xffe6c8,0.72);
+sun.position.set(-22,42,26); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-40,right:40,top:40,bottom:-40,near:1,far:120}); sun.shadow.bias=-0.0006;
+scene.add(sun);
+const fillL=new THREE.DirectionalLight(0xdfe8ff,0.22); fillL.position.set(25,20,-20); scene.add(fillL);
+
+/* ---------- helpers ---------- */
+const matCache={};
+const mat=c=>matCache[c]||(matCache[c]=new THREE.MeshStandardMaterial({color:c,roughness:0.9,metalness:0}));
+function add(geo,color,x=0,y=0,z=0,parent=scene,shadow=true){
+  const m=new THREE.Mesh(geo,typeof color==='number'?mat(color):color);
+  m.position.set(x,y,z); m.castShadow=shadow; m.receiveShadow=true; parent.add(m); return m;
+}
+function rrShape(hw,hh,r,s=new THREE.Shape()){
+  s.moveTo(-hw+r,-hh);s.lineTo(hw-r,-hh);s.quadraticCurveTo(hw,-hh,hw,-hh+r);s.lineTo(hw,hh-r);
+  s.quadraticCurveTo(hw,hh,hw-r,hh);s.lineTo(-hw+r,hh);s.quadraticCurveTo(-hw,hh,-hw,hh-r);
+  s.lineTo(-hw,-hh+r);s.quadraticCurveTo(-hw,-hh,-hw+r,-hh);return s;
+}
+function rbox(w,h,d,r){
+  r=Math.min(r,w*0.45,h*0.45,d*0.45);
+  const hw=w/2-r,hh=h/2-r;
+  const g=new THREE.ExtrudeGeometry(rrShape(hw,hh,Math.min(hw,hh)*0.5),{depth:Math.max(d-2*r,0.001),bevelEnabled:true,bevelThickness:r,bevelSize:r,bevelSegments:3,curveSegments:6});
+  g.center(); return g;
+}
+// rounded-rect inside test (true circle corners)
+function inRR(x,z,h,r){const qx=Math.abs(x)-(h-r),qz=Math.abs(z)-(h-r);return Math.hypot(Math.max(qx,0),Math.max(qz,0))+Math.min(Math.max(qx,qz),0)-r<0;}
+function groundY(x,z){if(inRR(x,z,11.1,3.1))return PARK_Y;if(inRR(x,z,17,9))return ROAD_Y;if(inRR(x,z,19.5,11.5))return SW_Y;return 0;}
+function canvasTex(w,h){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;return {cv,ctx:cv.getContext('2d'),tex};}
+function roundRect(x,X,Y,W,H,R){x.beginPath();x.moveTo(X+R,Y);x.arcTo(X+W,Y,X+W,Y+H,R);x.arcTo(X+W,Y+H,X,Y+H,R);x.arcTo(X,Y+H,X,Y,R);x.arcTo(X,Y,X+W,Y,R);x.closePath();}
+
+/* ---------- base: music-box disk ---------- */
+add(new THREE.LatheGeometry([[33.6,-4],[33.6,0.9],[34.2,1.5],[36,1.5],[36.8,0.8],[36.8,-4]].map(p=>new THREE.Vector2(p[0],p[1])),96),0xf0dcc8);
+add(new THREE.CylinderGeometry(33.8,33.8,1,96),0xd59d58,0,-0.5,0,scene,false);
+for(let i=0;i<16;i++){ // wood grain swirls
+  const a=rand()*Math.PI*2,rr=23+rand()*8.5,R=1.5+rand()*4.5;
+  const t=add(new THREE.TorusGeometry(R,0.07,6,60,Math.PI*(0.6+rand()*0.9)),0xbf8646,Math.cos(a)*rr,0.01,Math.sin(a)*rr,scene,false);
+  t.rotation.x=-Math.PI/2; t.rotation.z=rand()*6;
+}
+function slab(shape,depth,bevel,color){
+  const g=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:bevel>0,bevelThickness:bevel,bevelSize:bevel,bevelSegments:3,curveSegments:24});
+  g.rotateX(-Math.PI/2); return add(g,color,0,bevel,0,scene,false);
+}
+slab(rrShape(17,17,9),ROAD_Y,0,0x6f6762);
+const sw=rrShape(19.5,19.5,11.5); sw.holes.push(rrShape(17,17,9,new THREE.Path())); slab(sw,0.2,0.05,0xf1e4cb);
+slab(rrShape(11,11,3),0.15,0.15,0xa6bb80);
+
+/* ---------- lanes & crossings ---------- */
+function makeLoop(h,r,rev){
+  const pts=[],seg=14,c=h-r;
+  for(const [cx,cz,a0] of [[c,c,0],[-c,c,Math.PI/2],[-c,-c,Math.PI],[c,-c,Math.PI*1.5]])
+    for(let i=0;i<=seg;i++){const a=a0+i/seg*Math.PI/2;pts.push({x:cx+r*Math.cos(a),z:cz+r*Math.sin(a)});}
+  if(rev)pts.reverse();
+  const n=pts.length,cum=[0];
+  for(let i=0;i<n;i++){const b=pts[(i+1)%n];cum.push(cum[i]+Math.hypot(b.x-pts[i].x,b.z-pts[i].z));}
+  const L=cum[n];
+  const loop={h,L,at(s){s=mod(s,L);let i=0;while(cum[i+1]<s)i++;const a=pts[i],b=pts[(i+1)%n],t=(s-cum[i])/((cum[i+1]-cum[i])||1);return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t,dx:b.x-a.x,dz:b.z-a.z};},
+    nearestS(x,z){let best=0,bd=1e9;for(let s=0;s<L;s+=0.1){const p=this.at(s),d=(p.x-x)**2+(p.z-z)**2;if(d<bd){bd=d;best=s;}}return best;}};
+  return loop;
+}
+// crossing i: d = outward walking direction, p = road direction
+const CROSS=[{dx:0,dz:-1,name:'北側'},{dx:0,dz:1,name:'南側'},{dx:1,dz:0,name:'東側'},{dx:-1,dz:0,name:'西側'}].map(c=>({...c,px:-c.dz,pz:c.dx}));
+const stripeG=new THREE.BoxGeometry(3,0.03,0.5);
+CROSS.forEach(c=>{for(let k=0;k<6;k++){const a=11.6+k*0.95;const m=add(stripeG,0xf7f3ea,c.dx*a,ROAD_Y+0.01,c.dz*a,scene,false);m.rotation.y=Math.atan2(-c.pz,c.px);}});
+const crossingAt=(x,z)=>{for(let i=0;i<4;i++){const c=CROSS[i],al=x*c.dx+z*c.dz,ac=x*c.px+z*c.pz;if(al>9.6&&al<19.4&&Math.abs(ac)<2.2)return i;}return -1;};
+const mid=makeLoop(14,6,false); const midCS=CROSS.map(c=>mid.nearestS(c.dx*14,c.dz*14));
+const dashG=new THREE.BoxGeometry(0.14,0.03,1);
+for(let s=0;s<mid.L;s+=2.2){
+  if(midCS.some(cs=>Math.min(mod(cs-s,mid.L),mod(s-cs,mid.L))<3))continue;
+  const p=mid.at(s);const m=add(dashG,0xe9d9a0,p.x,ROAD_Y+0.01,p.z,scene,false);m.rotation.y=Math.atan2(p.dx,p.dz);
+}
+const lanes=[makeLoop(12.6,4.6,false),makeLoop(15.4,7.4,true)];
+lanes.forEach(l=>l.cs=CROSS.map(c=>l.nearestS(c.dx*l.h,c.dz*l.h)));
+
+/* ---------- electronic warning signs ---------- */
+const signs=CROSS.map((c,i)=>{
+  const t=canvasTex(256,104);
+  const face=new THREE.MeshBasicMaterial({map:t.tex});
+  const lamp=new THREE.MeshBasicMaterial({color:0x3a2a26});
+  const plane=new THREE.PlaneGeometry(2.1,0.85);
+  for(const [along,side] of [[18.9,1],[10.0,-1]]){
+    const g=new THREE.Group();
+    const x=c.dx*along+c.px*2.6*side,z=c.dz*along+c.pz*2.6*side;
+    g.position.set(x,groundY(x,z),z); g.rotation.y=Math.atan2(c.px,c.pz)+0.6;
+    add(new THREE.CylinderGeometry(0.08,0.11,2.4,10),0x5d5a57,0,1.2,0,g);
+    add(rbox(2.3,1.02,0.26,0.1),0x2c2724,0,2.75,0,g);
+    const f1=add(plane,face,0,2.75,0.135,g,false), f2=add(plane,face,0,2.75,-0.135,g,false); f2.rotation.y=Math.PI;
+    add(new THREE.SphereGeometry(0.13,12,10),lamp,0,3.38,0,g,false);
+    scene.add(g);
+  }
+  return {t,lamp,key:''};
+});
+function drawSign(s,alert,on){
+  const key=alert+':'+on; if(s.key===key)return; s.key=key;
+  const x=s.t.ctx; x.fillStyle='#161210'; x.fillRect(0,0,256,104);
+  x.textAlign='center'; x.textBaseline='middle';
+  if(alert){
+    x.fillStyle=on?'#ff4433':'#5c1d16'; x.shadowColor='#ff3322'; x.shadowBlur=on?16:0;
+    x.font=`900 36px ${FONT}`; x.fillText('注意禮讓行人',128,52);
+  }else{
+    x.fillStyle='#53c27a'; x.shadowBlur=0; x.font=`900 30px ${FONT}`; x.fillText('減速慢行',128,40);
+    x.font=`700 20px ${FONT}`; x.fillStyle='#3e8f5a'; x.fillText('行人優先',128,74);
+  }
+  x.shadowBlur=0; x.fillStyle='rgba(0,0,0,0.38)';
+  for(let g=0;g<256;g+=4)x.fillRect(g,0,1,104); for(let g=0;g<104;g+=4)x.fillRect(0,g,256,1);
+  s.lamp.color.set(alert&&on?0xff3b2f:0x3a2a26); s.t.tex.needsUpdate=true;
+}
+
+/* ---------- walk graph (paths + sidewalks) ---------- */
+const NODES=[],NODE={};
+function node(name,x,z){const n={name,x,z,adj:[]};NODES.push(n);if(name)NODE[name]=n;return n;}
+function link(a,b){a.adj.push(b);b.adj.push(a);}
+[['PN',0,-3.4],['PE',3.4,0],['PS',0,3.4],['PW',-3.4,0],['IN',0,-10.2],['IE',10.2,0],['IS',0,10.2],['IW',-10.2,0],
+ ['ON',0,-18.3],['OE',18.3,0],['OS',0,18.3],['OW',-18.3,0],['T',6.3,-4.6],['BW',-6.2,3.6],['BE',6.4,3.6]].forEach(a=>node(...a));
+const L=(a,b)=>link(NODE[a],NODE[b]);
+['PN-PE','PE-PS','PS-PW','PW-PN','PN-IN','PE-IE','PS-IS','PW-IW','IN-ON','IE-OE','IS-OS','IW-OW','PE-T','PS-BW','PS-BE'].forEach(e=>L(...e.split('-')));
+{ // sidewalk ring
+  const k=15.28,ring=[NODE.ON,node('',8,-18.3),node('',k,-k),node('',18.3,-8),NODE.OE,node('',18.3,8),node('',k,k),node('',8,18.3),
+    NODE.OS,node('',-8,18.3),node('',-k,k),node('',-18.3,8),NODE.OW,node('',-18.3,-8),node('',-k,-k),node('',-8,-18.3)];
+  ring.forEach((n,i)=>link(n,ring[(i+1)%ring.length]));
+}
+function path(a,b){ // dijkstra
+  const dist=new Map(NODES.map(n=>[n,Infinity])),prev=new Map(),todo=new Set(NODES);dist.set(a,0);
+  while(todo.size){let u=null;for(const n of todo)if(!u||dist.get(n)<dist.get(u))u=n;todo.delete(u);if(u===b)break;
+    for(const v of u.adj){const d=dist.get(u)+Math.hypot(u.x-v.x,u.z-v.z);if(d<dist.get(v)){dist.set(v,d);prev.set(v,u);}}}
+  const out=[];for(let n=b;n;n=prev.get(n))out.unshift(n);return out;
+}
+const nearestNode=(x,z)=>NODES.reduce((b,n)=>Math.hypot(n.x-x,n.z-z)<Math.hypot(b.x-x,b.z-z)?n:b);
+const dst=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
+function routeTo(w,x,z){
+  const tgt={x,z};
+  if(dst(w,tgt)<4){w.route=[tgt];return;}
+  const p=path(nearestNode(w.x,w.z),nearestNode(x,z)).map(n=>({x:n.x,z:n.z}));
+  if(p.length>1&&dst(w,p[1])<=dst(p[0],p[1]))p.shift();
+  if(p.length>1&&dst(tgt,p[p.length-2])<=dst(p[p.length-1],p[p.length-2]))p.pop();
+  p.push(tgt); w.route=p;
+}
+
+/* ---------- park furniture ---------- */
+const parkEdges=[];
+NODES.forEach(a=>a.adj.forEach(b=>{if(a.name<b.name&&inRR(a.x,a.z,10.6,3)&&inRR(b.x,b.z,10.6,3))parkEdges.push([a,b]);}));
+add(new THREE.CylinderGeometry(4.4,4.4,0.04,40),0xefe3c6,0,PARK_Y,0,scene,false);
+parkEdges.forEach(([a,b])=>{
+  const len=dst(a,b);const m=add(new THREE.BoxGeometry(1.3,0.04,len),0xefe3c6,(a.x+b.x)/2,PARK_Y+0.005,(a.z+b.z)/2,scene,false);
+  m.rotation.y=Math.atan2(b.x-a.x,b.z-a.z);
+});
+NODES.filter(n=>inRR(n.x,n.z,10.6,3)).forEach(n=>add(new THREE.CylinderGeometry(0.65,0.65,0.04,20),0xefe3c6,n.x,PARK_Y+0.006,n.z,scene,false));
+// fountain
+add(new THREE.LatheGeometry([[0.01,0],[1.8,0],[1.95,0.45],[1.75,0.5],[1.6,0.2],[0.01,0.2]].map(p=>new THREE.Vector2(p[0],p[1])),40),0xf3ead8,0,PARK_Y,0);
+add(new THREE.CylinderGeometry(1.62,1.62,0.05,40),0x8fc3c9,0,PARK_Y+0.38,0,scene,false);
+add(new THREE.CylinderGeometry(0.18,0.28,0.9,16),0xf3ead8,0,PARK_Y+0.7,0);
+const drop=add(new THREE.SphereGeometry(0.22,16,12),new THREE.MeshStandardMaterial({color:0xbfe3e6,roughness:0.3}),0,PARK_Y+1.3,0);
+
+function bench(x,z){
+  const g=new THREE.Group();g.position.set(x,PARK_Y,z);
+  add(rbox(1.9,0.12,0.6,0.05),0xb9773f,0,0.5,0,g);add(rbox(1.9,0.5,0.12,0.05),0xb9773f,0,0.85,-0.27,g);
+  for(const sx of [-0.75,0.75])add(rbox(0.12,0.5,0.5,0.04),0x5c4a3e,sx,0.25,0,g);
+  scene.add(g);
+}
+bench(-6.2,2.3); bench(6.4,2.3);
+
+// QR code pillars with speakers
+const qrT=canvasTex(140,176);
+function drawQR(){
+  const x=qrT.ctx,r=rng(7),n=21,m=5,ox=17,oy=12;
+  x.fillStyle='#fff';x.fillRect(0,0,140,176);x.fillStyle='#231d1a';
+  const finder=(i,j)=>(i<8&&j<8)||(i>12&&j<8)||(i<8&&j>12);
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++)if(!finder(i,j)&&r()<0.5)x.fillRect(ox+i*m,oy+j*m,m,m);
+  for(const [i,j] of [[0,0],[14,0],[0,14]]){x.fillRect(ox+i*m,oy+j*m,35,35);x.fillStyle='#fff';x.fillRect(ox+i*m+5,oy+j*m+5,25,25);x.fillStyle='#231d1a';x.fillRect(ox+i*m+10,oy+j*m+10,15,15);}
+  x.fillStyle='#d9443a';x.fillRect(0,128,140,48);x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';
+  x.font=`900 22px ${FONT}`;x.fillText('掃我・禁菸提醒',70,152);qrT.tex.needsUpdate=true;
+}
+drawQR();
+const qrMat=new THREE.MeshBasicMaterial({map:qrT.tex});
+const PILLARS=[{x:-4.6,z:4.9,id:'A-02'},{x:-1.5,z:-7,id:'A-01'},{x:4.3,z:6.2,id:'A-03'}];
+const clickables=[],speakers=[];
+PILLARS.forEach(p=>{
+  const g=new THREE.Group();g.position.set(p.x,PARK_Y,p.z);g.userData.qr=p.id;
+  add(rbox(0.72,2.3,0.72,0.16),0xf4ecdc,0,1.15,0,g);
+  const pg=new THREE.PlaneGeometry(0.58,0.73);
+  for(let k=0;k<4;k++){const a=k*Math.PI/2;const q=add(pg,qrMat,Math.sin(a)*0.375,1.45,Math.cos(a)*0.375,g,false);q.rotation.y=a;}
+  add(new THREE.CylinderGeometry(0.2,0.34,0.36,16),0x7c9474,0,2.5,0,g);
+  add(new THREE.SphereGeometry(0.16,12,10),0x3f4a3c,0,2.72,0,g);
+  scene.add(g);clickables.push(g);speakers.push({x:p.x,y:PARK_Y+2.6,z:p.z});
+});
+
+// restroom with live board
+const WC={x:6.3,z:-7.2};
+{
+  const g=new THREE.Group();g.position.set(WC.x,PARK_Y,WC.z);
+  add(rbox(4.6,2.4,3,0.3),0xefe3cf,0,1.2,0,g);
+  add(rbox(5.1,0.4,3.5,0.18),0x8fa585,0,2.55,0,g);
+  add(rbox(0.9,1.6,0.1,0.06),0x6d5446,-0.8,0.85,1.5,g);add(rbox(0.9,1.6,0.1,0.06),0x6d5446,0.8,0.85,1.5,g);
+  add(new THREE.CircleGeometry(0.2,20),0x5f8fbf,-0.8,1.85,1.52,g,false);add(new THREE.CircleGeometry(0.2,20),0xd9786c,0.8,1.85,1.52,g,false);
+  add(rbox(3.9,2.3,0.22,0.12),0x2c2724,0,3.95,1.25,g);
+  add(new THREE.CylinderGeometry(0.07,0.07,1.2,8),0x5d5a57,-1.3,2.9,1.25,g);add(new THREE.CylinderGeometry(0.07,0.07,1.2,8),0x5d5a57,1.3,2.9,1.25,g);
+  scene.add(g);
+}
+const boardT=canvasTex(512,300);
+add(new THREE.PlaneGeometry(3.7,2.1),new THREE.MeshBasicMaterial({map:boardT.tex}),WC.x,PARK_Y+3.95,WC.z+1.37,scene,false);
+const stalls=Array.from({length:10},(_,i)=>({type:i<4?'男':i<9?'女':'親子',occ:false,t:0,who:null}));
+let extraPeople=1,wcDirty=true;
+const used=()=>stalls.filter(s=>s.occ).length;
+const peopleIn=()=>used()+extraPeople+(player.inToilet&&player.extra==='stroller'?1:0);
+function drawBoard(){
+  const x=boardT.ctx;x.fillStyle='#1f2622';x.fillRect(0,0,512,300);
+  x.textBaseline='middle';x.textAlign='left';
+  x.fillStyle='#e9e1cf';x.font=`700 26px ${FONT}`;x.fillText('延平公園 公共廁所',24,34);
+  x.fillStyle='#8fbf8a';x.font=`700 18px ${FONT}`;x.textAlign='right';x.fillText('即時狀態',488,34);
+  x.textAlign='left';x.fillStyle='#e9e1cf';x.font=`700 24px ${FONT}`;x.fillText('使用中',24,96);
+  x.font=`900 64px ${FONT}`;x.fillStyle=used()>=8?'#ff6b5c':'#ffd27a';x.fillText(String(used()),112,98);
+  x.fillStyle='#e9e1cf';x.font=`700 30px ${FONT}`;x.fillText('/ 10 間',172,100);
+  x.font=`700 24px ${FONT}`;x.fillText('目前人數',300,96);x.fillStyle='#ffd27a';x.font=`900 40px ${FONT}`;x.fillText(peopleIn()+' 人',406,98);
+  stalls.forEach((s,i)=>{const X=24+i*47+(i>=4?6:0)+(i>=9?6:0);x.fillStyle=s.occ?'#ef5b4c':'#5fb36c';roundRect(x,X,160,38,52,8);x.fill();
+    x.fillStyle='#1f2622';x.font=`900 20px ${FONT}`;x.textAlign='center';x.fillText(s.occ?'●':'○',X+19,186);x.textAlign='left';});
+  x.fillStyle='#b9b3a6';x.font=`700 20px ${FONT}`;x.fillText('男廁',24,244);x.fillText('女廁',214,244);x.fillText('親子',455,244);
+  x.fillStyle='#8a8578';x.font=`500 17px ${FONT}`;x.fillText('紅色：使用中　綠色：空間',24,280);
+  boardT.tex.needsUpdate=true;
+}
+
+/* ---------- trees ---------- */
+const tierG=new THREE.LatheGeometry([[0.001,0],[0.7,0],[0.96,0.04],[1,0.16],[0.82,0.42],[0.5,0.74],[0.18,0.96],[0.001,1]].map(p=>new THREE.Vector2(p[0],p[1])),28);
+const trunkG=new THREE.CylinderGeometry(0.2,0.24,0.9,12);
+const PAL=[[0x5f7c52,0x8ea684,0xe8e2c8],[0x6a9a5c,0x5f7c52,0xe3e7ad],[0x7f9a78,0xa9bba0,0xefe9d2],[0x4f7048,0x86a07a,0xdfe3b4],[0x57a06a,0x6fae78,0xe9edb8]];
+function tree(x,z,s){
+  const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.scale.setScalar(s);g.rotation.y=rand()*6;
+  add(trunkG,0x5c3b2b,0,0.45,0,g);
+  const pal=PAL[Math.floor(rand()*PAL.length)],tiers=rand()<0.55?3:2;let yy=0.7,R=1.25;
+  for(let i=0;i<tiers;i++){const H=R*1.05;add(tierG,pal[i+(tiers===2?1:0)],0,yy,0,g).scale.set(R,H,R);yy+=H*0.55;R*=0.72;}
+  scene.add(g);
+}
+function segDist(px,pz,a,b){const vx=b.x-a.x,vz=b.z-a.z,t=Math.max(0,Math.min(1,((px-a.x)*vx+(pz-a.z)*vz)/(vx*vx+vz*vz)));return Math.hypot(px-a.x-vx*t,pz-a.z-vz*t);}
+const avoid=[...PILLARS.map(p=>[p.x,p.z,1.4]),[-6.2,2.3,1.9],[6.4,2.3,1.9]];
+CROSS.forEach(c=>{for(const [al,sd] of [[18.9,1],[10,-1]])avoid.push([c.dx*al+c.px*2.6*sd,c.dz*al+c.pz*2.6*sd,1.6]);});
+const placed=[];
+for(let k=0,n=0;k<600&&n<18;k++){
+  const x=(rand()*2-1)*9.6,z=(rand()*2-1)*9.6;
+  if(!inRR(x,z,9.8,2.5)||Math.hypot(x,z)<5.4)continue;
+  if(parkEdges.some(([a,b])=>segDist(x,z,a,b)<1.6))continue;
+  if(Math.abs(x-WC.x)<3.6&&z>-9.8&&z<-3.6)continue;
+  if(avoid.some(([ax,az,r])=>Math.hypot(x-ax,z-az)<r)||placed.some(p=>Math.hypot(x-p[0],z-p[1])<1.9))continue;
+  placed.push([x,z]);tree(x,z,0.75+rand()*0.45);n++;
+}
+
+/* ---------- houses around ---------- */
+const HOUSES=[[20,0xf4e6d2,0xc7775a],[62,0xe9dcc6,0x8fa585],[110,0xf6ead9,0xa9b9c4],[158,0xefd9c4,0xc7775a],[205,0xf4e6d2,0x8fa585],[250,0xe9dcc6,0xd8a85a],[295,0xf6ead9,0xc7775a],[340,0xefd9c4,0xa9b9c4]];
+const roofG=new THREE.ConeGeometry(1,1,4);roofG.rotateY(Math.PI/4);
+const houseSpots=[];
+HOUSES.forEach(([deg,wall,roof],i)=>{
+  const a=deg*Math.PI/180,x=Math.cos(a)*26.2,z=Math.sin(a)*26.2;houseSpots.push([x,z]);
+  const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=Math.atan2(-x,-z);
+  const w=3.4+rand()*1.4,h=2.4+rand()*1.6,d=3+rand();
+  add(rbox(w,h,d,0.3),wall,0,h/2,0,g);
+  if(i%3===2){add(rbox(w+0.3,0.45,d+0.3,0.2),roof,0,h+0.15,0,g);}
+  else{const r=add(roofG,roof,0,h+0.8,0,g);r.scale.set((w/2+0.35)*1.414,1.7,(d/2+0.35)*1.414);}
+  add(rbox(0.8,1.3,0.12,0.06),0x8a5a3c,0,0.65,d/2,g);
+  for(const sx of [-w/3.2,w/3.2])add(rbox(0.7,0.7,0.1,0.08),0x6f8ea0,sx,h*0.62,d/2+0.01,g);
+  scene.add(g);
+});
+for(let k=0,n=0;k<800&&n<34;k++){
+  const a=rand()*Math.PI*2,r=20+rand()*12.5,x=Math.cos(a)*r,z=Math.sin(a)*r;
+  if(inRR(x,z,20.6,12.6)||Math.hypot(x,z)>32.4)continue;
+  if(houseSpots.some(h=>Math.hypot(x-h[0],z-h[1])<4.4)||placed.some(p=>Math.hypot(x-p[0],z-p[1])<2.3))continue;
+  placed.push([x,z]);tree(x,z,0.85+rand()*0.7);n++;
+}
+
+/* ---------- cars ---------- */
+const wheelG=new THREE.CylinderGeometry(0.3,0.3,0.22,16);wheelG.rotateZ(Math.PI/2);
+function makeCar(color){
+  const g=new THREE.Group();
+  add(rbox(1.5,0.62,2.7,0.28),color,0,0.62,0,g);
+  add(rbox(1.25,0.55,1.45,0.24),0x7e98a6,0,1.12,-0.15,g);
+  add(rbox(1.3,0.14,1.5,0.07),color,0,1.42,-0.15,g);
+  for(const sx of [-1,1])for(const sz of [-1,1])add(wheelG,0x3b3431,sx*0.72,0.3,sz*0.85,g);
+  for(const sx of [-0.45,0.45])add(new THREE.SphereGeometry(0.1,10,8),new THREE.MeshBasicMaterial({color:0xfff3c4}),sx,0.7,1.36,g,false);
+  scene.add(g);return g;
+}
+const cars=[[0,0,0xe8b04b],[0,0.5,0xd77a61],[1,0.2,0x7fa7b5],[1,0.7,0xf0ede3]].map(([li,f,c])=>({lane:lanes[li],s:lanes[li].L*f,v:3,mesh:makeCar(c)}));
+const crossOcc=[false,false,false,false];
+function updateCars(dt){
+  for(const car of cars){
+    const ln=car.lane;let target=4.2;
+    for(let i=0;i<4;i++){const d=mod(ln.cs[i]-car.s,ln.L);if(crossOcc[i]&&d>3&&d<11)target=Math.min(target,Math.max(0,(d-3.6)*0.9));}
+    for(const o of cars)if(o!==car&&o.lane===ln){const gap=mod(o.s-car.s,ln.L);if(gap<10)target=Math.min(target,Math.max(0,(gap-4.4)*0.9));}
+    car.v+=(target-car.v)*Math.min(1,dt*2.5);car.s+=car.v*dt;
+    const p=ln.at(car.s);car.mesh.position.set(p.x,ROAD_Y,p.z);car.mesh.rotation.y=Math.atan2(p.dx,p.dz);
+  }
+}
+
+/* ---------- people ---------- */
+const PG={leg:new THREE.CylinderGeometry(0.085,0.075,0.52,10),torso:new THREE.SphereGeometry(0.3,20,16),skirt:new THREE.CylinderGeometry(0.2,0.4,0.46,20),
+  arm:new THREE.CylinderGeometry(0.065,0.06,0.42,8),head:new THREE.SphereGeometry(0.27,24,18),cap:new THREE.SphereGeometry(0.29,20,14,0,Math.PI*2,0,Math.PI*0.52),
+  eye:new THREE.SphereGeometry(0.035,8,6),bun:new THREE.SphereGeometry(0.15,12,10),ball:new THREE.SphereGeometry(1,16,12),wheel:new THREE.CylinderGeometry(0.11,0.11,0.06,12)};
+PG.wheel.rotateZ(Math.PI/2);
+const SKIN=[0xf2c9a5,0xe8b48e,0xf6d6b8,0xd9a07a];
+function makePerson(o){
+  const root=new THREE.Group(),fig=new THREE.Group(),body=new THREE.Group();root.add(fig);fig.add(body);
+  const legs=[],arms=[],skin=o.skin||SKIN[0];
+  for(const sx of [-0.12,0.12]){const p=new THREE.Group();p.position.set(sx,0.52,0);add(PG.leg,o.pants,0,-0.26,0,p);body.add(p);legs.push(p);}
+  add(PG.torso,o.shirt,0,0.86,0,body).scale.set(1,1.15,0.82);
+  if(o.kind==='woman')add(PG.skirt,o.skirt,0,0.66,0,body);
+  for(const sx of [-0.31,0.31]){const p=new THREE.Group();p.position.set(sx,1.08,0);p.rotation.z=sx>0?0.12:-0.12;add(PG.arm,o.shirt,0,-0.2,0,p);add(PG.eye,skin,0,-0.42,0,p).scale.setScalar(2.2);body.add(p);arms.push(p);}
+  add(PG.head,skin,0,1.42,0,body);
+  add(PG.cap,o.hair,0,1.45,-0.02,body).rotation.x=-0.3;
+  if(o.kind==='woman'){add(PG.bun,o.hair,0,1.35,-0.24,body).scale.set(1.2,1.6,0.9);}
+  if(o.kind==='kid'){add(PG.bun,o.hair,-0.2,1.6,0,body).scale.setScalar(0.7);add(PG.bun,o.hair,0.2,1.6,0,body).scale.setScalar(0.7);}
+  for(const sx of [-0.09,0.09]){add(PG.eye,0x2a211c,sx,1.45,0.25,body,false);add(PG.eye,0xf0a39a,sx*1.75,1.36,0.22,body,false).scale.setScalar(1.3);}
+  fig.scale.setScalar(o.kind==='kid'?0.72:1);
+  let pet=null;
+  if(o.extra==='stroller'){
+    const s=new THREE.Group();s.position.set(0,0,0.95);
+    add(rbox(0.62,0.4,0.85,0.14),0x9fb7c9,0,0.6,0,s);
+    add(new THREE.SphereGeometry(0.36,16,10,0,Math.PI*2,0,Math.PI/2),0xe7c4a8,0,0.78,-0.22,s).rotation.x=-0.5;
+    add(PG.head,0xf6d6b8,0,0.86,0.08,s).scale.setScalar(0.5);
+    for(const sx of [-0.28,0.28])for(const sz of [-0.3,0.3])add(PG.wheel,0x3b3431,sx,0.11,sz,s);
+    add(new THREE.CylinderGeometry(0.03,0.03,0.7,6),0x5c4a3e,0,0.95,-0.5,s).rotation.x=1.0;
+    root.add(s);
+  }
+  if(o.extra==='dog'){
+    pet=new THREE.Group();pet.position.set(0.75,0,-0.2);
+    add(PG.ball,0xd9a066,0,0.38,0,pet).scale.set(0.2,0.18,0.32);
+    add(PG.ball,0xd9a066,0,0.58,0.3,pet).scale.setScalar(0.17);
+    add(PG.ball,0x8a5a3c,-0.12,0.68,0.27,pet).scale.set(0.05,0.1,0.07);add(PG.ball,0x8a5a3c,0.12,0.68,0.27,pet).scale.set(0.05,0.1,0.07);
+    add(PG.ball,0x2a211c,0,0.56,0.47,pet,false).scale.setScalar(0.04);
+    add(PG.ball,0xd9a066,0,0.5,-0.32,pet).scale.set(0.04,0.12,0.04);
+    for(const sx of [-0.1,0.1])for(const sz of [-0.15,0.15])add(new THREE.CylinderGeometry(0.04,0.04,0.25,6),0xc58c55,sx,0.12,sz,pet);
+    root.add(pet);
+  }
+  scene.add(root);
+  return {root,body,legs,arms,pet,phase:rand()*6};
+}
+function animPerson(p,moving,dt){
+  if(moving)p.phase+=dt*9;
+  const sw=moving?Math.sin(p.phase)*0.6:0;
+  p.legs[0].rotation.x+=(sw-p.legs[0].rotation.x)*0.3;p.legs[1].rotation.x+=(-sw-p.legs[1].rotation.x)*0.3;
+  p.arms[0].rotation.x+=(-sw*0.8-p.arms[0].rotation.x)*0.3;p.arms[1].rotation.x+=(sw*0.8-p.arms[1].rotation.x)*0.3;
+  p.body.position.y=moving?Math.abs(Math.sin(p.phase))*0.05:0;
+  if(p.pet)p.pet.position.y=moving?Math.abs(Math.sin(p.phase*1.3))*0.08:0;
+}
+const lerpAng=(a,b,t)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
+function stepWalker(w,dt,speed){
+  if(!w.route.length)return false;
+  const t=w.route[0],dx=t.x-w.x,dz=t.z-w.z,d=Math.hypot(dx,dz),st=speed*dt;
+  if(d>0.01)w.heading=Math.atan2(dx,dz);
+  if(d<=st){w.x=t.x;w.z=t.z;w.route.shift();}else{w.x+=dx/d*st;w.z+=dz/d*st;}
+  return true;
+}
+function placeWalker(w,dt){
+  const r=w.p.root;r.position.x=w.x;r.position.z=w.z;
+  r.position.y+=(groundY(w.x,w.z)-r.position.y)*Math.min(1,dt*12);
+  r.rotation.y=lerpAng(r.rotation.y,w.heading,Math.min(1,dt*10));
+}
+
+/* player */
+const LOOK={man:{shirt:0x7fa6c9,pants:0x4d5b73,hair:0x3b2a20},woman:{shirt:0xe59a8c,skirt:0xf2d3a2,pants:0xf2c9a5,hair:0x4a3026},kid:{shirt:0xf2c14e,pants:0x5d7fa0,hair:0x5a3a28}};
+const player={x:0,z:6.5,heading:Math.PI,route:[],inToilet:false,cool:false,kind:'man',extra:'none',p:null};
+const marker=add(new THREE.ConeGeometry(0.24,0.45,4),new THREE.MeshBasicMaterial({color:0xf0a640}),0,0,0,scene,false);marker.rotation.x=Math.PI;
+function buildPlayer(){
+  const old=player.p;if(old)scene.remove(old.root);
+  player.p=makePerson({kind:player.kind,extra:player.extra,...LOOK[player.kind]});
+  player.p.root.position.set(player.x,groundY(player.x,player.z),player.z);player.p.root.rotation.y=player.heading;
+  player.p.root.visible=!player.inToilet;
+}
+buildPlayer();
+
+/* NPCs */
+const NPC_KINDS=['man','woman','kid','woman','man','woman','man','kid','woman'];
+const SHIRTS=[0xc8d6a4,0xe7b9a6,0x9fb7c9,0xf0d58c,0xbfa6c9,0xa7c7b5,0xe8a87c,0xd0c4b0,0x9cc0a0];
+const npcs=NPC_KINDS.map((kind,i)=>{
+  const n=NODES[Math.floor(rand()*NODES.length)];
+  const extra=i===3?'stroller':i===4?'dog':'none';
+  const w={x:n.x,z:n.z,heading:rand()*6,route:[],wait:rand()*3,speed:1.5+rand()*0.6,goToilet:false,hidden:false,kind,extra,
+    p:makePerson({kind,extra,shirt:SHIRTS[i],pants:[0x5d6b7a,0x6b5a4c,0x4d5b73][i%3],skirt:[0xd8c08f,0x9fb7c9,0xc7a3b5][i%3],hair:[0x2c2420,0x5a3a28,0x8a6a4a][i%3],skin:SKIN[i%4]})};
+  w.p.root.position.set(w.x,groundY(w.x,w.z),w.z);return w;
+});
+function npcNext(w){
+  const dest=rand()<0.2?NODE.T:NODES[Math.floor(rand()*NODES.length)];
+  w.route=path(nearestNode(w.x,w.z),dest).map(n=>({x:n.x,z:n.z}));w.goToilet=dest===NODE.T;w.wait=0.5+rand()*2.5;
+}
+
+/* smoker on the bench */
+const smoker={p:makePerson({kind:'man',shirt:0x9a8f7d,pants:0x5a5148,hair:0x2c2420,skin:SKIN[1]}),smoking:true,relight:0,bubble:0};
+smoker.p.root.position.set(-6.2,PARK_Y+0.02,2.42);
+smoker.p.legs.forEach(l=>l.rotation.x=-1.45);
+smoker.p.arms[1].rotation.x=-2.2;smoker.p.arms[1].rotation.z=-0.5;
+const cig=add(new THREE.CylinderGeometry(0.025,0.025,0.24,6),0xffffff,0,-0.46,0.08,smoker.p.arms[1],false);cig.rotation.x=Math.PI/2;
+const tip=add(new THREE.SphereGeometry(0.04,8,6),new THREE.MeshBasicMaterial({color:0xff6a2a}),0,0.12,0,cig,false);
+const puffs=[];for(let i=0;i<22;i++){const m=add(PG.ball,new THREE.MeshBasicMaterial({color:0xf1eee8,transparent:true,opacity:0,depthWrite:false}),0,-10,0,scene,false);puffs.push({m,life:0});}
+let puffT=0;const tmpV=new THREE.Vector3();
+
+/* sprites: broadcast banner + bubble */
+function labelSprite(w,h,draw,sx,sy){const t=canvasTex(w,h);draw(t.ctx);t.tex.needsUpdate=true;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t.tex,depthTest:false}));s.scale.set(sx,sy,1);s.visible=false;s.renderOrder=10;scene.add(s);s.userData.redraw=()=>{draw(t.ctx);t.tex.needsUpdate=true;};return s;}
+const banner=labelSprite(1024,200,x=>{x.clearRect(0,0,1024,200);x.fillStyle='#d9443a';roundRect(x,8,8,1008,184,92);x.fill();x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';x.font=`900 74px ${FONT}`;x.fillText('本公園全面禁菸　請勿吸菸',512,104);},15,2.9);
+banner.position.set(-1,8.5,1);
+const bubble=labelSprite(512,150,x=>{x.clearRect(0,0,512,150);x.fillStyle='#fffaf0';roundRect(x,6,6,500,110,55);x.fill();x.beginPath();x.moveTo(230,112);x.lineTo(256,146);x.lineTo(282,112);x.fill();x.fillStyle='#3b332d';x.textAlign='center';x.textBaseline='middle';x.font=`900 46px ${FONT}`;x.fillText('不好意思，馬上熄掉！',256,62);},3.8,1.1);
+bubble.position.set(-6.2,PARK_Y+2.6,2.4);
+
+/* waves (broadcast + tap) */
+const waveG=new THREE.TorusGeometry(1,0.05,6,48),waves=[];
+function spawnWave(x,y,z,color,life=1.6,grow=4){const m=add(waveG,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.9,depthWrite:false}),x,y,z,scene,false);m.rotation.x=Math.PI/2;waves.push({m,t:0,life,grow});}
+
+/* ---------- audio ---------- */
+let soundOn=true,actx=null;
+function chime(){if(!soundOn)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const n=actx.currentTime;
+  [[784,0],[659,0.35],[523,0.7]].forEach(([f,t])=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;g.gain.setValueAtTime(0.0001,n+t);g.gain.exponentialRampToValueAtTime(0.25,n+t+0.03);g.gain.exponentialRampToValueAtTime(0.0001,n+t+0.7);o.connect(g).connect(actx.destination);o.start(n+t);o.stop(n+t+0.75);});}catch(e){}}
+function speak(text){if(!soundOn||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='zh-TW';u.rate=0.95;speechSynthesis.speak(u);}catch(e){}}
+
+/* ---------- broadcast ---------- */
+let bcT=0,bcWave=0;
+function broadcast(){
+  if(bcT>0)return;bcT=7;bcWave=0;banner.visible=true;chime();
+  setTimeout(()=>speak('親愛的民眾您好，延平公園為全面禁菸場所，請勿在園區內吸菸，謝謝您的配合。'),1100);
+}
+
+/* ---------- phone page ---------- */
+const phone=$('#phone'),phBtn=$('#ph-btn'),phMsg=$('#ph-msg');let phCool=0;
+function openPhone(id){$('#ph-spot').textContent='QR 點位 '+id+'・延平公園';phone.hidden=false;phMsg.textContent=phCool>0?'':'　';}
+function closePhone(){phone.hidden=true;}
+function pressPhone(){
+  if(phCool>0)return;
+  if(!smoker.smoking&&bcT<=0){phMsg.textContent='已送出，園區正在廣播';}
+  broadcast();phCool=15;phMsg.textContent='已送出，園區正在廣播禁菸提醒';phBtn.disabled=true;
+}
+phBtn.addEventListener('click',pressPhone);
+$('#ph-close').addEventListener('click',closePhone);
+phone.addEventListener('click',e=>{if(e.target===phone)closePhone();});
+$('#scan-btn').addEventListener('click',()=>openPhone('A-02'));
+
+/* ---------- captions ---------- */
+const cap=$('#caption');let capTimer=0;
+function caption(step,title,text,hold=0){$('#cap-step').textContent=step;$('#cap-title').textContent=title;$('#cap-text').textContent=text;cap.hidden=false;capTimer=hold;}
+function note(title,text){if(touring)return;caption('即時通知',title,text,5);}
+
+/* ---------- tour ---------- */
+let tourId=0,touring=false,camAnim=null;
+const tourBtn=$('#tour-btn');
+function camTo(v,dur=1.8){const [P,T]=viewPos(v);camAnim={p0:camera.position.clone(),t0:controls.target.clone(),p1:P,t1:T,t:0,dur};}
+function guard(id){if(id!==tourId)throw 'cancel';}
+const sleep=(ms,id)=>new Promise((res,rej)=>setTimeout(()=>id===tourId?res():rej('cancel'),ms));
+const waitFor=(fn,id)=>new Promise((res,rej)=>{const chk=()=>{if(id!==tourId)return rej('cancel');if(fn())return res();requestAnimationFrame(chk);};chk();});
+async function walkTo(x,z,id){await waitFor(()=>!player.inToilet,id);routeTo(player,x,z);await waitFor(()=>!player.route.length,id);}
+function stopTour(){if(!touring)return;tourId++;touring=false;tourBtn.textContent='自動導覽';tourBtn.classList.remove('on');cap.hidden=true;}
+async function runTour(){
+  const id=++tourId;touring=true;tourBtn.textContent='停止導覽';tourBtn.classList.add('on');
+  try{
+    closePhone();smoker.smoking=true;smoker.relight=0;phCool=0;
+    camTo('overview');
+    caption('開場','延平公園智慧示範區','以延平公園為中心，把路口安全、無菸環境、公廁資訊三件小事，用科技做好。');
+    await walkTo(0,6.5,id);await sleep(3500,id);
+    caption('功能 1 / 3','智慧斑馬線','行人一走近斑馬線，路邊電子看板就會閃出紅色「注意禮讓行人」，車輛自動停讓。');
+    camTo('cross');await walkTo(0,9.4,id);await sleep(600,id);await walkTo(0,18.7,id);await sleep(1800,id);await walkTo(0,9.4,id);await sleep(800,id);
+    caption('功能 2 / 3','公園禁菸提醒','長椅上有人在抽菸。公園柱子上有 QR Code，用手機一掃就能打開禁菸提醒網頁。');
+    camTo('smoke');await walkTo(-4.3,3.7,id);player.heading=Math.atan2(-0.3,1.2);await sleep(2600,id);
+    caption('功能 2 / 3','公園禁菸提醒','掃描後點「發送禁菸提醒」，全園喇叭立刻播放禁菸廣播，不必當面起衝突。');
+    openPhone('A-02');await sleep(2200,id);phBtn.classList.add('press');await sleep(250,id);phBtn.classList.remove('press');pressPhone();
+    await sleep(3000,id);closePhone();await sleep(4200,id);
+    caption('功能 3 / 3','智慧公廁','廁所門口看板即時顯示使用中間數與目前人數，到門口前就知道要不要等。');
+    camTo('wc');await walkTo(WC.x,NODE.T.z,id);await waitFor(()=>player.inToilet,id);
+    caption('功能 3 / 3','智慧公廁','你一進去，看板馬上加一間使用中；出來後自動釋放。');
+    await waitFor(()=>!player.inToilet,id);await sleep(1800,id);
+    camTo('overview');
+    caption('導覽完畢','鄭安棋的南區科技藍圖','路口更安全、公園更無菸、公廁更透明。現在換你自己逛逛：點地面走路，或點柱子上的 QR Code。',0);
+    await sleep(6000,id);
+  }catch(e){if(e!=='cancel')console.error(e);}
+  if(id===tourId){touring=false;tourBtn.textContent='自動導覽';tourBtn.classList.remove('on');cap.hidden=true;}
+}
+tourBtn.addEventListener('click',()=>touring?stopTour():runTour());
+
+/* ---------- UI: picker / sound ---------- */
+function seg(groupId,key){
+  document.querySelectorAll(`#${groupId} button`).forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll(`#${groupId} button`).forEach(o=>o.setAttribute('aria-pressed',String(o===b)));
+    player[key]=b.dataset.v;buildPlayer();
+  }));
+}
+seg('pick-kind','kind');seg('pick-extra','extra');
+const soundBtn=$('#sound-btn');
+soundBtn.addEventListener('click',()=>{soundOn=!soundOn;soundBtn.setAttribute('aria-pressed',String(soundOn));soundBtn.textContent=soundOn?'聲音 開':'聲音 關';if(!soundOn&&window.speechSynthesis)speechSynthesis.cancel();});
+
+/* ---------- input ---------- */
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),gPlane=new THREE.Plane(new THREE.Vector3(0,1,0),-0.3);
+let down=null;
+canvas.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,t:performance.now()};camAnim=null;});
+canvas.addEventListener('pointerup',e=>{
+  if(!down)return;const tap=Math.hypot(e.clientX-down.x,e.clientY-down.y)<6&&performance.now()-down.t<500;down=null;if(!tap)return;
+  const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObjects(clickables,true)[0];
+  if(hit){let o=hit.object;while(o&&!o.userData.qr)o=o.parent;if(o){openPhone(o.userData.qr);return;}}
+  const p=new THREE.Vector3();
+  if(ray.ray.intersectPlane(gPlane,p)&&Math.hypot(p.x,p.z)<33&&!player.inToilet){stopTour();routeTo(player,p.x,p.z);spawnWave(p.x,groundY(p.x,p.z)+0.05,p.z,0xf0a640,0.7,1.2);}
+});
+const keys={},KEYS={w:[0,-1],arrowup:[0,-1],s:[0,1],arrowdown:[0,1],a:[-1,0],arrowleft:[-1,0],d:[1,0],arrowright:[1,0]};
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(KEYS[k]&&phone.hidden){keys[k]=true;e.preventDefault();}});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+
+/* ---------- toilet sim ---------- */
+function pickStall(kind,extra){
+  let pref=extra==='stroller'?[9]:kind==='man'?[0,1,2,3]:kind==='woman'?[4,5,6,7,8]:[0,1,2,3,4,5,6,7,8,9];
+  pref=pref.filter(i=>!stalls[i].occ);return pref.length?pref[Math.floor(rand()*pref.length)]:-1;
+}
+[1,5,7].forEach(i=>Object.assign(stalls[i],{occ:true,t:6+rand()*14,who:'ghost'}));
+let ghostT=3;
+function updateToilet(dt){
+  ghostT-=dt;
+  if(ghostT<=0){ghostT=2.5+rand()*3;if(used()<7&&rand()<0.5){const i=pickStall(rand()<0.5?'man':'woman','none');if(i>=0)Object.assign(stalls[i],{occ:true,t:8+rand()*18,who:'ghost'});}extraPeople=Math.floor(rand()*3);wcDirty=true;}
+  stalls.forEach(s=>{if(!s.occ)return;s.t-=dt;if(s.t>0)return;
+    if(s.who==='player'){player.inToilet=false;player.cool=true;player.x=NODE.T.x;player.z=NODE.T.z;player.p.root.visible=true;player.route=[{x:NODE.T.x,z:NODE.T.z+1.4}];}
+    else if(s.who&&s.who.p){s.who.hidden=false;s.who.p.root.visible=true;}
+    s.occ=false;s.who=null;wcDirty=true;});
+  // player at the door
+  if(!player.inToilet){
+    const d=dst(player,NODE.T);
+    if(player.cool){if(d>1.8)player.cool=false;}
+    else if(d<0.75&&!player.route.length){
+      player.cool=true;const i=pickStall(player.kind,player.extra);
+      if(i>=0){Object.assign(stalls[i],{occ:true,t:4.5,who:'player'});player.inToilet=true;player.p.root.visible=false;wcDirty=true;
+        note('智慧公廁',`你走進${stalls[i].type==='親子'?'親子廁所':stalls[i].type+'廁'}，門口看板立刻更新為使用中 ${used()} / 10 間。`);}
+      else note('智慧公廁','目前沒有空間，看板顯示已滿，請稍候再來。');
+    }
+  }
+}
+
+/* ---------- status panel ---------- */
+const stallEls=Array.from({length:10},()=>{const s=document.createElement('span');$('#stalls').appendChild(s);return s;});
+let lastUI='';
+function setPill(id,cls,text){const el=$(id);el.className='pill '+cls;el.textContent=text;}
+function updateUI(){
+  const active=CROSS.filter((c,i)=>crossOcc[i]).map(c=>c.name);
+  const smokeState=bcT>0?'bc':smoker.smoking?'smoke':'clean';
+  const key=active.join()+smokeState+stalls.map(s=>+s.occ).join('')+peopleIn()+phCool.toFixed(0);
+  if(key===lastUI)return;lastUI=key;
+  if(active.length){setPill('#pill-cross','alert','看板警示中');$('#d-cross').innerHTML=`<b>${active.join('、')}</b> 斑馬線有行人，看板閃爍「注意禮讓行人」，車輛停讓`;}
+  else{setPill('#pill-cross','','待命');$('#d-cross').textContent='路口目前沒有行人，看板顯示減速慢行';}
+  if(smokeState==='bc'){setPill('#pill-smoke','alert','禁菸廣播中');$('#d-smoke').textContent='全園喇叭正在播放禁菸提醒';}
+  else if(smokeState==='smoke'){setPill('#pill-smoke','warn','有人吸菸');$('#d-smoke').textContent='西側長椅有人抽菸。掃柱子上的 QR Code 就能發送提醒';}
+  else{setPill('#pill-smoke','ok','無菸');$('#d-smoke').textContent='提醒已生效，公園恢復無菸';}
+  const u=used();setPill('#pill-wc',u>=8?'alert':u>=5?'warn':'ok',`使用中 ${u} / 10 間`);
+  $('#d-wc').innerHTML=`目前廁所內 <b>${peopleIn()}</b> 人・空間 <b>${10-u}</b> 間`;
+  stalls.forEach((s,i)=>stallEls[i].classList.toggle('on',s.occ));
+  if(!phone.hidden&&phCool<=0){phBtn.disabled=false;}
+  if(!phone.hidden&&phCool>0&&bcT<=0)phMsg.textContent=`已送出。此點位 ${Math.ceil(phCool)} 秒後可再發送`;
+}
+
+/* ---------- main loop ---------- */
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+addEventListener('resize',resize);resize();
+const clock=new THREE.Clock();let time=0,uiT=0;
+function frame(){
+  const dt=Math.min(clock.getDelta(),0.05);time+=dt;
+
+  // player input
+  let ix=0,iz=0;for(const k in keys)if(keys[k]){ix+=KEYS[k][0];iz+=KEYS[k][1];}
+  let moving=false;
+  if(!player.inToilet){
+    if(ix||iz){
+      stopTour();player.route=[];const az=controls.getAzimuthalAngle();
+      let mx=Math.cos(az)*ix+Math.sin(az)*iz,mz=-Math.sin(az)*ix+Math.cos(az)*iz;const l=Math.hypot(mx,mz);mx/=l;mz/=l;
+      player.x+=mx*4.2*dt;player.z+=mz*4.2*dt;const r=Math.hypot(player.x,player.z);if(r>33){player.x*=33/r;player.z*=33/r;}
+      player.heading=Math.atan2(mx,mz);moving=true;
+    }else moving=stepWalker(player,dt,4);
+  }
+  placeWalker(player,dt);animPerson(player.p,moving,dt);
+  marker.visible=!player.inToilet;marker.position.set(player.p.root.position.x,player.p.root.position.y+(player.kind==='kid'?1.8:2.3)+Math.sin(time*3)*0.12,player.p.root.position.z);marker.rotation.y+=dt*2;
+
+  // npcs
+  for(const w of npcs){
+    if(w.hidden)continue;
+    if(w.wait>0){w.wait-=dt;animPerson(w.p,false,dt);placeWalker(w,dt);continue;}
+    const m=stepWalker(w,dt,w.speed);
+    if(!m){
+      if(w.goToilet&&dst(w,NODE.T)<0.2){w.goToilet=false;const i=pickStall(w.kind,w.extra);
+        if(i>=0){Object.assign(stalls[i],{occ:true,t:7+rand()*9,who:w});w.hidden=true;w.p.root.visible=false;wcDirty=true;w.route=[{x:NODE.T.x,z:NODE.T.z+1.2}];continue;}}
+      npcNext(w);
+    }
+    placeWalker(w,dt);animPerson(w.p,m,dt);
+  }
+
+  // crossings + signs
+  crossOcc.fill(false);
+  for(const w of [player,...npcs]){if((w===player&&player.inToilet)||w.hidden)continue;const i=crossingAt(w.x,w.z);if(i>=0)crossOcc[i]=true;}
+  const on=Math.floor(time*3)%2===0;
+  signs.forEach((s,i)=>drawSign(s,crossOcc[i],on));
+  updateCars(dt);
+
+  // smoke
+  if(smoker.smoking){puffT-=dt;if(puffT<=0){puffT=0.16;const p=puffs.find(q=>q.life<=0);if(p){tip.getWorldPosition(tmpV);p.m.position.copy(tmpV);p.life=2.4;}}}
+  for(const p of puffs){if(p.life<=0){p.m.material.opacity=0;continue;}p.life-=dt;const k=1-p.life/2.4;
+    p.m.position.y+=dt*0.75;p.m.position.x+=dt*0.25*Math.sin(time+k*4);p.m.scale.setScalar(0.06+k*0.32);p.m.material.opacity=0.65*(1-k);}
+  cig.visible=smoker.smoking;
+  if(!smoker.smoking&&!touring){smoker.relight-=dt;if(smoker.relight<=0)smoker.smoking=true;}
+  smoker.p.arms[1].rotation.x+=((smoker.smoking?-2.2:-0.2)-smoker.p.arms[1].rotation.x)*Math.min(1,dt*4);
+  smoker.p.body.position.y=Math.sin(time*1.4)*0.01;
+
+  // broadcast
+  if(bcT>0){
+    bcT-=dt;bcWave-=dt;
+    if(bcWave<=0){bcWave=0.45;speakers.forEach(s=>spawnWave(s.x,s.y,s.z,0xf08a3c));}
+    banner.position.y=8.5+Math.sin(time*2)*0.2;
+    if(smoker.smoking&&bcT<4.6){smoker.smoking=false;smoker.relight=45;smoker.bubble=3.5;}
+    if(bcT<=0)banner.visible=false;
+  }
+  if(smoker.bubble>0){smoker.bubble-=dt;bubble.visible=smoker.bubble>0;}
+  phCool=Math.max(0,phCool-dt);
+  for(let i=waves.length-1;i>=0;i--){const w=waves[i];w.t+=dt;const s=0.3+w.t*w.grow;w.m.scale.set(s,s,s);w.m.material.opacity=0.9*(1-w.t/w.life);
+    if(w.t>=w.life){scene.remove(w.m);w.m.material.dispose();waves.splice(i,1);}}
+
+  drop.position.y=PARK_Y+1.3+Math.sin(time*2.4)*0.08;
+
+  updateToilet(dt);
+  if(wcDirty){wcDirty=false;drawBoard();}
+  if(capTimer>0){capTimer-=dt;if(capTimer<=0&&!touring)cap.hidden=true;}
+  uiT-=dt;if(uiT<=0){uiT=0.2;updateUI();}
+
+  if(camAnim){camAnim.t+=dt;let k=Math.min(1,camAnim.t/camAnim.dur);k=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    camera.position.lerpVectors(camAnim.p0,camAnim.p1,k);controls.target.lerpVectors(camAnim.t0,camAnim.t1,k);if(k>=1)camAnim=null;}
+  controls.update();
+  renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+caption('歡迎','延平公園智慧示範區','按「自動導覽」看完三項功能，或自己選角色在公園裡走走。',7);
+
+// redraw canvas text once web fonts arrive
+if(document.fonts)document.fonts.ready.then(()=>{drawQR();signs.forEach(s=>s.key='');wcDirty=true;banner.userData.redraw();bubble.userData.redraw();});
+})();
+</script>
+
+</body>
+</html>
