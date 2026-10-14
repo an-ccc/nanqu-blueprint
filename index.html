@@ -830,16 +830,44 @@ const nick=$('#nick');nick.value=myName;
 nick.addEventListener('input',()=>{myName=cleanName(nick.value);store.set('nick',myName);applyMe();});
 nick.addEventListener('keydown',e=>{if(e.key==='Enter')nick.blur();});
 
-let room=null,lastSent='',sendT=0;
+let room=null,mq=null,lastSent='',lastPub=0,sendT=0;
 const remotes=new Map();
 function pushPresence(force){
-  if(!room)return;
+  if(!room&&!mq)return;
   const p={x:+player.x.toFixed(2),z:+player.z.toFixed(2),h:+player.heading.toFixed(2),k:player.kind,e:player.extra,n:myName,c:myColor,t:player.inToilet?1:0};
-  const s=JSON.stringify(p);if(s===lastSent&&!force)return;lastSent=s;room.presence(p).catch(()=>{});
+  const s=JSON.stringify(p),now=performance.now();
+  if(room){if(s===lastSent&&!force)return;lastSent=s;room.presence(p).catch(()=>{});return;}
+  if(s===lastSent&&!force&&now-lastPub<2000)return; // heartbeat every 2 s
+  lastSent=s;lastPub=now;mq.publish(MQ_BASE+myId,s);
+}
+/* public pages (GitHub): relay positions through a free public MQTT broker.
+   ponytail: public test broker, no SLA and anyone can read the topic; move to Firebase/own broker if traffic grows */
+const MQ_BASE='chcs-nanqu-blueprint/v1/p/',myId=Math.random().toString(36).slice(2,10),mqPeers=new Map();
+function startMqtt(){
+  const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/mqtt@5.3.5/dist/mqtt.min.js';
+  s.onload=()=>{try{
+    const c=mqtt.connect('wss://broker.emqx.io:8084/mqtt',{clientId:'nq_'+myId,clean:true,reconnectPeriod:4000,connectTimeout:8000,
+      will:{topic:MQ_BASE+myId,payload:'',qos:0,retain:false}});
+    c.on('connect',()=>{mq=c;c.subscribe(MQ_BASE+'+');pushPresence(true);updateOnline();});
+    c.on('offline',()=>{mq=null;updateOnline();});
+    c.on('message',(topic,buf)=>{
+      const id=topic.slice(MQ_BASE.length);
+      if(id===myId||!/^[a-z0-9]{1,12}$/.test(id))return;
+      if(!buf.length){mqPeers.delete(id);return;}
+      if(buf.length>400||(!mqPeers.has(id)&&mqPeers.size>=60))return;
+      try{const p=JSON.parse(buf.toString());if(p&&typeof p==='object'&&!Array.isArray(p))mqPeers.set(id,{presence:p,at:performance.now()});}catch(e){}
+    });
+    addEventListener('pagehide',()=>{try{c.publish(MQ_BASE+myId,'');}catch(e){}});
+  }catch(e){}};
+  document.head.appendChild(s);
+  setInterval(()=>{
+    const now=performance.now();for(const [id,v] of mqPeers)if(now-v.at>7000)mqPeers.delete(id);
+    syncPeers([...mqPeers].map(([id,v])=>({peer:id,kind:'viewer',sameTab:false,presence:v.presence})));
+  },200);
 }
 function updateOnline(){
   const el=$('#online');
-  if(!room){el.textContent='單人模式';return;}
+  if(!room&&!mq){el.textContent='單人模式';return;}
   el.textContent=remotes.size?`公園裡現在有 ${remotes.size+1} 人（含你）`:'公園裡目前只有你';
 }
 function dropRemote(id){const r=remotes.get(id);if(!r)return;scene.remove(r.p.root);scene.remove(r.marker);scene.remove(r.tag.s);r.marker.material.dispose();remotes.delete(id);}
@@ -880,7 +908,7 @@ function updateRemotes(dt){
 applyMe();
 (async()=>{
   try{
-    if(!window.claude||!window.claude.use)return;
+    if(!window.claude||!window.claude.use){startMqtt();return;}
     room=await window.claude.use('room');
     if(!room)return;
     room.onPeers(ch=>syncPeers(ch.peers),()=>{room=null;for(const id of [...remotes.keys()])dropRemote(id);updateOnline();});
