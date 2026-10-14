@@ -71,6 +71,13 @@ h1{margin:2px 0 4px;font-family:var(--display);font-weight:400;font-size:30px;li
 .row{display:flex;gap:8px;margin-top:2px}
 .row .primary{flex:1;background:var(--wood);border-color:var(--wood);color:#fff;font-family:var(--display);font-weight:400;font-size:16px;padding:8px 14px}
 .row .primary.on{background:var(--ink);border-color:var(--ink)}
+.namerow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.namerow input{font:inherit;font-size:14px;font-weight:700;width:9.5em;max-width:100%;border:2px solid var(--paper-2);background:#fff;color:var(--ink);border-radius:999px;padding:5px 12px}
+.namerow input:focus-visible{outline:3px solid var(--amber);outline-offset:1px}
+.swatches{display:flex;gap:5px}
+.swatches button{width:22px;height:22px;border-radius:50%;border:3px solid var(--paper);box-shadow:0 0 0 1.5px var(--paper-2);cursor:pointer;padding:0}
+.swatches button[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--ink)}
+.online{margin:0;font-size:12px;font-weight:700;color:var(--sage)}
 .hint{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
 button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 .caption{grid-area:caption;align-self:end;justify-self:center;max-width:560px;width:100%;background:var(--ink);color:var(--paper);border-radius:20px;padding:12px 18px;box-shadow:0 8px 26px rgba(30,20,10,.3)}
@@ -142,6 +149,11 @@ button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 
     <section class="card picker" aria-label="角色與導覽">
       <h2>選擇你的小人偶</h2>
+      <div class="namerow">
+        <input id="nick" type="text" maxlength="8" placeholder="輸入你的名字" aria-label="你的名字（顯示在頭上）" autocomplete="off">
+        <div class="swatches" id="swatches" role="group" aria-label="箭頭顏色"></div>
+      </div>
+      <p class="online" id="online">單人模式</p>
       <div class="seg" id="pick-kind" role="group" aria-label="角色">
         <button type="button" id="k-man" data-v="man" aria-pressed="true">男生</button>
         <button type="button" id="k-woman" data-v="woman" aria-pressed="false">女生</button>
@@ -791,9 +803,90 @@ canvas.addEventListener('pointerup',e=>{
   if(ray.ray.intersectPlane(gPlane,p)&&Math.hypot(p.x,p.z)<33&&!player.inToilet){stopTour();routeTo(player,p.x,p.z);spawnWave(p.x,groundY(p.x,p.z)+0.05,p.z,0xf0a640,0.7,1.2);}
 });
 const keys={},KEYS={w:[0,-1],arrowup:[0,-1],s:[0,1],arrowdown:[0,1],a:[-1,0],arrowleft:[-1,0],d:[1,0],arrowright:[1,0]};
-addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(KEYS[k]&&phone.hidden){keys[k]=true;e.preventDefault();}});
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();if(KEYS[k]&&phone.hidden){keys[k]=true;e.preventDefault();}});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+
+/* ---------- names, arrow colours, other visitors (room presence) ---------- */
+const COLORS=['#e0307a','#f0a640','#3f8fd8','#4caf6a','#9a6ad8','#e85a3c','#20a8a8','#6b4f3a'];
+const CNAMES=['桃紅','橘','藍','綠','紫','紅','青','咖啡'];
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
+let myName=(store.get('nick')||'').slice(0,8),myColor=Number(store.get('color'));
+if(!(myColor>=0&&myColor<COLORS.length))myColor=Math.floor(Math.random()*COLORS.length);
+function makeTag(){
+  const t=canvasTex(256,64);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t.tex,depthTest:false}));s.renderOrder=11;s.scale.set(1.9,0.475,1);scene.add(s);
+  let key='';
+  return {s,set(name,color){if(key===name+color)return;key=name+color;const x=t.ctx;x.clearRect(0,0,256,64);
+    x.font=`900 34px ${FONT}`;const w=Math.min(248,x.measureText(name).width+36);
+    x.fillStyle=color;roundRect(x,128-w/2,4,w,56,28);x.fill();x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';x.fillText(name,128,34,220);t.tex.needsUpdate=true;}};
+}
+const myTag=makeTag();
+const cleanName=v=>String(v==null?'':v).replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁯]/g,'').trim().slice(0,8);
+function applyMe(){marker.material.color.set(COLORS[myColor]);myTag.set(myName||'你',COLORS[myColor]);
+  document.querySelectorAll('#swatches button').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===myColor)));pushPresence(true);}
+COLORS.forEach((c,i)=>{const b=document.createElement('button');b.type='button';b.id='sw-'+i;b.style.background=c;b.setAttribute('aria-label',CNAMES[i]+'色箭頭');
+  b.addEventListener('click',()=>{myColor=i;store.set('color',String(i));applyMe();});$('#swatches').appendChild(b);});
+const nick=$('#nick');nick.value=myName;
+nick.addEventListener('input',()=>{myName=cleanName(nick.value);store.set('nick',myName);applyMe();});
+nick.addEventListener('keydown',e=>{if(e.key==='Enter')nick.blur();});
+
+let room=null,lastSent='',sendT=0;
+const remotes=new Map();
+function pushPresence(force){
+  if(!room)return;
+  const p={x:+player.x.toFixed(2),z:+player.z.toFixed(2),h:+player.heading.toFixed(2),k:player.kind,e:player.extra,n:myName,c:myColor,t:player.inToilet?1:0};
+  const s=JSON.stringify(p);if(s===lastSent&&!force)return;lastSent=s;room.presence(p).catch(()=>{});
+}
+function updateOnline(){
+  const el=$('#online');
+  if(!room){el.textContent='單人模式';return;}
+  el.textContent=remotes.size?`公園裡現在有 ${remotes.size+1} 人（含你）`:'公園裡目前只有你';
+}
+function dropRemote(id){const r=remotes.get(id);if(!r)return;scene.remove(r.p.root);scene.remove(r.marker);scene.remove(r.tag.s);r.marker.material.dispose();remotes.delete(id);}
+function syncPeers(peers){
+  const seen=new Set();
+  for(const pr of peers){
+    if(pr.sameTab||pr.kind!=='viewer')continue;
+    const s=pr.presence||{};const x=Number(s.x),z=Number(s.z);
+    if(!isFinite(x)||!isFinite(z))continue;
+    seen.add(pr.peer);
+    const kind=['man','woman','kid'].includes(s.k)?s.k:'man',extra=['none','stroller','wheelchair','dog'].includes(s.e)?s.e:'none';
+    let r=remotes.get(pr.peer);
+    if(r&&(r.kind!==kind||r.extra!==extra)){scene.remove(r.p.root);r.p=makePerson({kind,extra,...LOOK[kind]});r.kind=kind;r.extra=extra;}
+    if(!r){
+      r={p:makePerson({kind,extra,...LOOK[kind]}),kind,extra,x,z,heading:0,tag:makeTag(),
+        marker:add(marker.geometry,new THREE.MeshBasicMaterial({color:0xffffff}),0,0,0,scene,false)};
+      r.marker.rotation.x=Math.PI;remotes.set(pr.peer,r);
+    }
+    const lim=Math.hypot(x,z)>33?33/Math.hypot(x,z):1;
+    r.tx=x*lim;r.tz=z*lim;r.th=isFinite(Number(s.h))?Number(s.h):0;r.hidden=!!s.t;
+    const ci=Number.isInteger(s.c)&&s.c>=0&&s.c<COLORS.length?s.c:0;
+    r.marker.material.color.set(COLORS[ci]);r.tag.set(cleanName(s.n)||'訪客',COLORS[ci]);
+  }
+  for(const id of [...remotes.keys()])if(!seen.has(id))dropRemote(id);
+  updateOnline();
+}
+function updateRemotes(dt){
+  for(const r of remotes.values()){
+    const dx=r.tx-r.x,dz=r.tz-r.z,d=Math.hypot(dx,dz);
+    if(d>6){r.x=r.tx;r.z=r.tz;}else{const k=Math.min(1,dt*8);r.x+=dx*k;r.z+=dz*k;}
+    r.heading=r.th;placeWalker(r,dt);animPerson(r.p,d>0.03,dt);
+    const vis=!r.hidden;r.p.root.visible=r.marker.visible=r.tag.s.visible=vis;
+    const top=r.p.root.position.y+(r.kind==='kid'?1.8:2.3);
+    r.marker.position.set(r.x,top+Math.sin(time*3)*0.12,r.z);r.marker.rotation.y+=dt*2;
+    r.tag.s.position.set(r.x,top+0.62,r.z);
+  }
+}
+applyMe();
+(async()=>{
+  try{
+    if(!window.claude||!window.claude.use)return;
+    room=await window.claude.use('room');
+    if(!room)return;
+    room.onPeers(ch=>syncPeers(ch.peers),()=>{room=null;for(const id of [...remotes.keys()])dropRemote(id);updateOnline();});
+    updateOnline();pushPresence(true);
+  }catch(e){room=null;}
+})();
 
 /* ---------- toilet sim ---------- */
 function pickStall(kind,extra){
@@ -863,6 +956,9 @@ function frame(){
   }
   placeWalker(player,dt);animPerson(player.p,moving,dt);
   marker.visible=!player.inToilet;marker.position.set(player.p.root.position.x,player.p.root.position.y+(player.kind==='kid'?1.8:2.3)+Math.sin(time*3)*0.12,player.p.root.position.z);marker.rotation.y+=dt*2;
+  myTag.s.visible=marker.visible;myTag.s.position.set(marker.position.x,player.p.root.position.y+(player.kind==='kid'?1.8:2.3)+0.62,marker.position.z);
+  updateRemotes(dt);
+  sendT-=dt;if(sendT<=0){sendT=0.1;pushPresence(false);}
 
   // npcs
   for(const w of npcs){
@@ -879,7 +975,7 @@ function frame(){
 
   // crossings + signs
   crossOcc.fill(false);
-  for(const w of [player,...npcs]){if((w===player&&player.inToilet)||w.hidden)continue;const i=crossingAt(w.x,w.z);if(i>=0)crossOcc[i]=true;}
+  for(const w of [player,...npcs,...remotes.values()]){if((w===player&&player.inToilet)||w.hidden)continue;const i=crossingAt(w.x,w.z);if(i>=0)crossOcc[i]=true;}
   const on=Math.floor(time*3)%2===0;
   signs.forEach((s,i)=>drawSign(s,crossOcc[i],on));
   updateCars(dt);
