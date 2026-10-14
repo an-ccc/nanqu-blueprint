@@ -130,7 +130,7 @@ button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
         <div class="st-h"><span class="st-name">公共廁所</span><span class="pill ok" id="pill-wc">—</span></div>
         <p class="st-d" id="d-wc">—</p>
         <div class="stalls" id="stalls"></div>
-        <div class="stall-lg"><span>男 4</span><span>女 5</span><span>親子 1</span></div>
+        <div class="stall-lg"><span>男 4</span><span>女 5</span><span>親子／無障礙 1</span></div>
       </div>
     </section>
 
@@ -150,6 +150,7 @@ button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
       <div class="seg" id="pick-extra" role="group" aria-label="同行">
         <button type="button" id="e-none" data-v="none" aria-pressed="true">獨自</button>
         <button type="button" id="e-stroller" data-v="stroller" aria-pressed="false">推嬰兒車</button>
+        <button type="button" id="e-wheel" data-v="wheelchair" aria-pressed="false">推長輩輪椅</button>
         <button type="button" id="e-dog" data-v="dog" aria-pressed="false">帶寵物</button>
       </div>
       <div class="row">
@@ -404,7 +405,7 @@ add(new THREE.PlaneGeometry(3.7,2.1),new THREE.MeshBasicMaterial({map:boardT.tex
 const stalls=Array.from({length:10},(_,i)=>({type:i<4?'男':i<9?'女':'親子',occ:false,t:0,who:null}));
 let extraPeople=1,wcDirty=true;
 const used=()=>stalls.filter(s=>s.occ).length;
-const peopleIn=()=>used()+extraPeople+(player.inToilet&&player.extra==='stroller'?1:0);
+const peopleIn=()=>used()+extraPeople+(player.inToilet&&(player.extra==='stroller'||player.extra==='wheelchair')?1:0);
 function drawBoard(){
   const x=boardT.ctx;x.fillStyle='#1f2622';x.fillRect(0,0,512,300);
   x.textBaseline='middle';x.textAlign='left';
@@ -416,7 +417,7 @@ function drawBoard(){
   x.font=`700 24px ${FONT}`;x.fillText('目前人數',300,96);x.fillStyle='#ffd27a';x.font=`900 40px ${FONT}`;x.fillText(peopleIn()+' 人',406,98);
   stalls.forEach((s,i)=>{const X=24+i*47+(i>=4?6:0)+(i>=9?6:0);x.fillStyle=s.occ?'#ef5b4c':'#5fb36c';roundRect(x,X,160,38,52,8);x.fill();
     x.fillStyle='#1f2622';x.font=`900 20px ${FONT}`;x.textAlign='center';x.fillText(s.occ?'●':'○',X+19,186);x.textAlign='left';});
-  x.fillStyle='#b9b3a6';x.font=`700 20px ${FONT}`;x.fillText('男廁',24,244);x.fillText('女廁',214,244);x.fillText('親子',455,244);
+  x.fillStyle='#b9b3a6';x.font=`700 20px ${FONT}`;x.fillText('男廁',24,244);x.fillText('女廁',214,244);x.fillText('親子',448,232);x.font=`700 15px ${FONT}`;x.fillText('無障礙',446,256);
   x.fillStyle='#8a8578';x.font=`500 17px ${FONT}`;x.fillText('紅色：使用中　綠色：空間',24,280);
   boardT.tex.needsUpdate=true;
 }
@@ -519,6 +520,21 @@ function makePerson(o){
     add(new THREE.CylinderGeometry(0.03,0.03,0.7,6),0x5c4a3e,0,0.95,-0.5,s).rotation.x=1.0;
     root.add(s);
   }
+  if(o.extra==='wheelchair'){
+    const s=new THREE.Group();s.position.set(0,0,1.0);
+    add(rbox(0.66,0.1,0.6,0.04),0x5f8fbf,0,0.48,0,s);
+    add(rbox(0.66,0.6,0.08,0.04),0x5f8fbf,0,0.8,-0.3,s);
+    for(const sx of [-0.38,0.38]){add(new THREE.CylinderGeometry(0.36,0.36,0.05,20),0x3b3431,sx,0.36,-0.08,s).rotation.z=Math.PI/2;add(PG.wheel,0x3b3431,sx*0.8,0.11,0.32,s);}
+    add(new THREE.CylinderGeometry(0.03,0.03,0.8,6),0x8a8a8a,0,1.12,-0.36,s).rotation.z=Math.PI/2;
+    // seated elder
+    add(PG.torso,0xb59ac9,0,0.82,-0.08,s).scale.set(0.85,1,0.75);
+    for(const sx of [-0.11,0.11]){add(PG.leg,0x6b5a4c,sx,0.55,0.18,s).rotation.x=Math.PI/2;add(PG.leg,0x6b5a4c,sx,0.32,0.42,s).scale.set(1,0.6,1);}
+    add(PG.head,0xf2c9a5,0,1.28,-0.06,s).scale.setScalar(0.9);
+    add(PG.cap,0xdedad4,0,1.31,-0.08,s).scale.setScalar(0.9);
+    add(PG.bun,0xdedad4,0,1.25,-0.27,s).scale.setScalar(0.8);
+    for(const sx of [-0.08,0.08])add(PG.eye,0x2a211c,sx,1.3,0.17,s,false);
+    root.add(s);
+  }
   if(o.extra==='dog'){
     pet=new THREE.Group();pet.position.set(0.75,0,-0.2);
     add(PG.ball,0xd9a066,0,0.38,0,pet).scale.set(0.2,0.18,0.32);
@@ -571,7 +587,7 @@ const NPC_KINDS=['man','woman','kid','woman','man','woman','man','kid','woman'];
 const SHIRTS=[0xc8d6a4,0xe7b9a6,0x9fb7c9,0xf0d58c,0xbfa6c9,0xa7c7b5,0xe8a87c,0xd0c4b0,0x9cc0a0];
 const npcs=NPC_KINDS.map((kind,i)=>{
   const n=NODES[Math.floor(rand()*NODES.length)];
-  const extra=i===3?'stroller':i===4?'dog':'none';
+  const extra=i===3?'stroller':i===4?'dog':i===5?'wheelchair':'none';
   const w={x:n.x,z:n.z,heading:rand()*6,route:[],wait:rand()*3,speed:1.5+rand()*0.6,goToilet:false,hidden:false,kind,extra,
     p:makePerson({kind,extra,shirt:SHIRTS[i],pants:[0x5d6b7a,0x6b5a4c,0x4d5b73][i%3],skirt:[0xd8c08f,0x9fb7c9,0xc7a3b5][i%3],hair:[0x2c2420,0x5a3a28,0x8a6a4a][i%3],skin:SKIN[i%4]})};
   w.p.root.position.set(w.x,groundY(w.x,w.z),w.z);return w;
@@ -699,7 +715,7 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
 
 /* ---------- toilet sim ---------- */
 function pickStall(kind,extra){
-  let pref=extra==='stroller'?[9]:kind==='man'?[0,1,2,3]:kind==='woman'?[4,5,6,7,8]:[0,1,2,3,4,5,6,7,8,9];
+  let pref=extra==='stroller'||extra==='wheelchair'?[9]:kind==='man'?[0,1,2,3]:kind==='woman'?[4,5,6,7,8]:[0,1,2,3,4,5,6,7,8,9];
   pref=pref.filter(i=>!stalls[i].occ);return pref.length?pref[Math.floor(rand()*pref.length)]:-1;
 }
 [1,5,7].forEach(i=>Object.assign(stalls[i],{occ:true,t:6+rand()*14,who:'ghost'}));
@@ -718,7 +734,7 @@ function updateToilet(dt){
     else if(d<0.75&&!player.route.length){
       player.cool=true;const i=pickStall(player.kind,player.extra);
       if(i>=0){Object.assign(stalls[i],{occ:true,t:4.5,who:'player'});player.inToilet=true;player.p.root.visible=false;wcDirty=true;
-        note('智慧公廁',`你走進${stalls[i].type==='親子'?'親子廁所':stalls[i].type+'廁'}，門口看板立刻更新為使用中 ${used()} / 10 間。`);}
+        note('智慧公廁',`你走進${stalls[i].type==='親子'?'親子／無障礙廁所':stalls[i].type+'廁'}，門口看板立刻更新為使用中 ${used()} / 10 間。`);}
       else note('智慧公廁','目前沒有空間，看板顯示已滿，請稍候再來。');
     }
   }
