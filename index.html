@@ -71,6 +71,9 @@ h1{margin:2px 0 4px;font-family:var(--display);font-weight:400;font-size:30px;li
 .row{display:flex;gap:8px;margin-top:2px}
 .row .primary{flex:1;background:var(--wood);border-color:var(--wood);color:#fff;font-family:var(--display);font-weight:400;font-size:16px;padding:8px 14px}
 .row .primary.on{background:var(--ink);border-color:var(--ink)}
+.pk-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pk-body{display:flex;flex-direction:column;gap:8px}
+.fold{font:inherit;font-size:12px;font-weight:700;color:var(--muted);background:var(--paper-2);border:0;border-radius:999px;padding:4px 12px;cursor:pointer}
 .namerow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .namerow input{font:inherit;font-size:14px;font-weight:700;width:9.5em;max-width:100%;border:2px solid var(--paper-2);background:#fff;color:var(--ink);border-radius:999px;padding:5px 12px}
 .namerow input:focus-visible{outline:3px solid var(--amber);outline-offset:1px}
@@ -148,7 +151,8 @@ button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
     </div>
 
     <section class="card picker" aria-label="角色與導覽">
-      <h2>選擇你的小人偶</h2>
+      <div class="pk-head"><h2>選擇你的小人偶</h2><button type="button" class="fold" id="fold-btn" aria-expanded="true" aria-controls="picker-body">縮小</button></div>
+      <div class="pk-body" id="picker-body">
       <div class="namerow">
         <input id="nick" type="text" maxlength="8" placeholder="輸入你的名字" aria-label="你的名字（顯示在頭上）" autocomplete="off">
         <div class="swatches" id="swatches" role="group" aria-label="箭頭顏色"></div>
@@ -171,6 +175,7 @@ button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
         <button type="button" id="sound-btn" aria-pressed="true">聲音 開</button>
       </div>
       <p class="hint">點地面走過去・WASD／方向鍵移動・點公園柱子上的 QR Code</p>
+      </div>
     </section>
   </div>
 
@@ -787,6 +792,10 @@ function seg(groupId,key){
 }
 seg('pick-kind','kind');seg('pick-extra','extra');
 $('#night-btn').addEventListener('click',()=>{night=!night;applyNight();note(night?'晚上 17:00 後':'白天',night?'夜間模式啟動：有人進入廁所時會叮咚一聲，避免有人尾隨進入。':'回到白天模式。');});
+const foldBtn=$('#fold-btn'),pkBody=$('#picker-body');
+function setFold(f){pkBody.hidden=f;foldBtn.textContent=f?'展開':'縮小';foldBtn.setAttribute('aria-expanded',String(!f));try{localStorage.setItem('fold',f?'1':'');}catch(e){}}
+foldBtn.addEventListener('click',()=>setFold(!pkBody.hidden));
+try{if(localStorage.getItem('fold'))setFold(true);}catch(e){}
 const soundBtn=$('#sound-btn');
 soundBtn.addEventListener('click',()=>{soundOn=!soundOn;soundBtn.setAttribute('aria-pressed',String(soundOn));soundBtn.textContent=soundOn?'聲音 開':'聲音 關';if(!soundOn&&window.speechSynthesis)speechSynthesis.cancel();});
 
