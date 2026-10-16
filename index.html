@@ -105,14 +105,28 @@ button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 @media (max-width:760px){
   .hud{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto auto;
     grid-template-areas:"title" "status" "." "caption" "picker";gap:8px}
-  .card{padding:10px 14px}
-  h1{font-size:22px}
+  .hud{padding:calc(env(safe-area-inset-top,0px) + 10px) 10px calc(env(safe-area-inset-bottom,0px) + 10px);gap:6px}
+  .card{padding:8px 12px;border-radius:16px}
+  .title{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:10px}
+  .title .eyebrow{font-size:11px}
+  .cand{font-size:26px;margin-left:2px}
+  h1{font-size:16px;margin:0}
   .sub,.hint{display:none}
-  .status{flex-direction:row;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
-  .st{flex:0 0 200px;padding:10px 12px}
-  .caption{padding:10px 14px}
-  .caption strong{font-size:16px}
-  .caption p{font-size:13px}
+  /* status: compact chips; tap one to see its detail */
+  .status{flex-direction:row;overflow-x:auto;scrollbar-width:none;gap:6px}
+  .st{flex:0 0 auto;padding:6px 10px;border-radius:14px;cursor:pointer;max-width:240px}
+  .st.open{flex-basis:220px}
+  .st-name{font-size:13px}
+  .pill{font-size:11px;padding:2px 8px}
+  .st:not(.open) .st-d,.st:not(.open) .stalls,.st:not(.open) .stall-lg,.st:not(.open) .linkbtn{display:none}
+  .caption{padding:8px 12px;border-radius:14px}
+  .cap-step{font-size:10px}
+  .caption strong{font-size:14px}
+  .caption p{font-size:12px;line-height:1.5}
+  .picker{gap:6px}
+  .picker h2{font-size:14px}
+  .seg button,.row button{font-size:12px;padding:5px 10px}
+  .row .primary{font-size:14px;padding:6px 12px}
 }
 @media (prefers-reduced-motion:reduce){.smoke-btn{transition:none}}
 </style>
@@ -216,8 +230,18 @@ const camera=new THREE.PerspectiveCamera(34,1,0.5,400);
 const controls=new THREE.OrbitControls(camera,canvas);
 controls.enableDamping=true; controls.maxPolarAngle=1.3; controls.minDistance=8; controls.maxDistance=140;
 const narrow=()=>innerWidth/innerHeight<1;
-const VIEW={overview:[[0,46,56],[0,0,3]],cross:[[13,13,33],[0,0.5,14]],smoke:[[-1,8,15],[-5.4,1.2,3.6]],wc:[[13,8.5,5],[6.3,2.2,-6]]};
-function viewPos(v){const [p,t]=VIEW[v];const T=new THREE.Vector3(...t),P=new THREE.Vector3(...p);if(narrow())P.sub(T).multiplyScalar(1.7).add(T);return [P,T];}
+const VIEW={overview:[[0,40,48],[0,0,3]],cross:[[13,13,33],[0,0.5,14]],smoke:[[-1,8,15],[-5.4,1.2,3.6]],wc:[[13,8.5,5],[6.3,2.2,-6]]};
+// portrait phones: wider lens, and frame the park + roads (radius ~18) instead of the whole music-box disk
+function viewPos(v){
+  const [p,t]=VIEW[v];const T=new THREE.Vector3(...t),P=new THREE.Vector3(...p);
+  if(narrow()){
+    const a=innerWidth/innerHeight,hh=Math.atan(Math.tan(THREE.MathUtils.degToRad(25))*a),off=P.clone().sub(T),len=off.length();
+    const k=v==='overview'?18/(Math.sin(hh)*len):Math.max(1,0.26/Math.sin(hh));
+    if(v==='overview')T.z=1.5;
+    P.copy(T).add(off.multiplyScalar(k));
+  }
+  return [P,T];
+}
 {const [P,T]=viewPos('overview');camera.position.copy(P);controls.target.copy(T);}
 
 const hemi=new THREE.HemisphereLight(0xfff4e2,0x7d6f62,0.8);scene.add(hemi);
@@ -795,7 +819,8 @@ $('#night-btn').addEventListener('click',()=>{night=!night;applyNight();note(nig
 const foldBtn=$('#fold-btn'),pkBody=$('#picker-body');
 function setFold(f){pkBody.hidden=f;foldBtn.textContent=f?'展開':'縮小';foldBtn.setAttribute('aria-expanded',String(!f));try{localStorage.setItem('fold',f?'1':'');}catch(e){}}
 foldBtn.addEventListener('click',()=>setFold(!pkBody.hidden));
-try{if(localStorage.getItem('fold'))setFold(true);}catch(e){}
+try{const f=localStorage.getItem('fold');if(f||(f===null&&narrow()))setFold(true);}catch(e){if(narrow())setFold(true);}
+document.querySelectorAll('.st').forEach(c=>c.addEventListener('click',e=>{if(e.target.closest('button')||!narrow())return;c.classList.toggle('open');}));
 const soundBtn=$('#sound-btn');
 soundBtn.addEventListener('click',()=>{soundOn=!soundOn;soundBtn.setAttribute('aria-pressed',String(soundOn));soundBtn.textContent=soundOn?'聲音 開':'聲音 關';if(!soundOn&&window.speechSynthesis)speechSynthesis.cancel();});
 
@@ -974,7 +999,7 @@ function updateUI(){
 }
 
 /* ---------- main loop ---------- */
-function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=narrow()?50:34;camera.updateProjectionMatrix();}
 addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let time=0,uiT=0;
 function frame(){
